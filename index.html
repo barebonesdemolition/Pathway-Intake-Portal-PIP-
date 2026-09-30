@@ -31,6 +31,9 @@ button.primary{background:var(--brand);color:var(--brand-ink)}
 button:disabled{opacity:.55}
 .note{font-size:.82rem;color:var(--muted);margin:-6px 0 12px}
 .files{font-size:.8rem;color:var(--muted);margin-top:4px}
+.disclaimer{font-size:.8rem;color:var(--muted);background:var(--card);border:1px dashed var(--line);border-radius:4px;padding:10px 12px;margin:0 0 12px}
+.chk{display:flex;align-items:flex-start;gap:8px;font-weight:600;font-size:.88rem}
+.chk input{width:auto;margin:2px 0 0}
 .bar{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px))}
 .bar>div{max-width:640px;margin:0 auto;display:flex;gap:10px;align-items:center}
 .bar button{flex:1}
@@ -59,6 +62,10 @@ button:disabled{opacity:.55}
     <input type="file" id="scanFile" accept="image/*" capture="environment" hidden>
     <span class="files" id="scanStatus">Fills the fields below. Check them before you continue.</span>
   </div>
+  <p class="note chk" id="ocrCheckWrap" hidden>
+    <input type="checkbox" id="ocrChecked">
+    <span>I have checked every field below against the passport.</span>
+  </p>
   <label>Full name<input name="fullName" autocomplete="off" required></label>
   <div class="row">
     <label>Date of birth<input type="date" name="dob" required></label>
@@ -74,19 +81,21 @@ button:disabled{opacity:.55}
 
 <fieldset>
   <legend>2. Qualifications and pathway</legend>
+  <p class="disclaimer" id="disclaimerText"></p>
   <label>Target category
-    <select name="category" id="category" required>
-      <option value="">Select…</option>
-      <option>Business Owner / Investor / Start-Up Visa</option>
-      <option>Healthcare &amp; Social Services</option>
-      <option>STEM</option>
-      <option>Education</option>
-      <option>Trades</option>
-      <option>Transport</option>
-      <option>General Skilled Worker</option>
-    </select>
+    <select name="category" id="category" required></select>
   </label>
-  <label>Actual job title / current business role<input name="jobTitle" required></label>
+  <label id="occWrap" hidden>Occupation (NOC title)
+    <select name="occupation" id="occupation"></select>
+  </label>
+  <input type="hidden" name="noc" id="noc">
+  <input type="hidden" name="teer" id="teer">
+  <label>Actual job title <span class="hint">(as stated by the candidate)</span>
+    <input name="jobTitle" required>
+  </label>
+  <label>Employer <span class="hint">(current or most recent)</span>
+    <input name="employer" required>
+  </label>
   <label>Highest education level
     <select name="education" required>
       <option value="">Select…</option><option>High school</option><option>Diploma / certificate</option><option>Bachelor's degree</option><option>Master's degree</option><option>Doctorate</option>
@@ -163,30 +172,213 @@ button:disabled{opacity:.55}
 </div></div>
 
 <script>
-// ---- Set this after deploying the Apps Script web app (backend step) ----
-const ENDPOINT = "PASTE_APPS_SCRIPT_WEB_APP_URL_HERE";
+// ============================================================================
+// OCCUPATION DATA — keep in sync with data/occupations.json
+// ============================================================================
+const OCCUPATION_GUIDE = {
+  metadata: {
+    source_checked: "2026-09-24",
+    disclaimer: "Lead sourcing reference only. Do not tell a person they qualify or that they match a NOC. Record the person's actual job title, employer, duties and CV; the licensed Canadian representative confirms NOC and Express Entry eligibility."
+  },
+  categories: [
+    {
+      id: "healthcare",
+      label: "Healthcare & Social Services",
+      occupations: [
+        { title: "Specialists in clinical and laboratory medicine", noc: "31100", teer: 1 },
+        { title: "Specialists in surgery", noc: "31101", teer: 1 },
+        { title: "General practitioners and family physicians", noc: "31102", teer: 1 },
+        { title: "Veterinarians", noc: "31103", teer: 1 },
+        { title: "Dentists", noc: "31110", teer: 1 },
+        { title: "Optometrists", noc: "31111", teer: 1 },
+        { title: "Audiologists and speech-language pathologists", noc: "31112", teer: 1 },
+        { title: "Pharmacists", noc: "31120", teer: 1 },
+        { title: "Dietitians and nutritionists", noc: "31121", teer: 1 },
+        { title: "Psychologists", noc: "31200", teer: 1 },
+        { title: "Chiropractors", noc: "31201", teer: 1 },
+        { title: "Physiotherapists", noc: "31202", teer: 1 },
+        { title: "Occupational therapists", noc: "31203", teer: 1 },
+        { title: "Other professional occupations in health diagnosing and treating", noc: "31209", teer: 1 },
+        { title: "Nursing coordinators and supervisors", noc: "31300", teer: 1 },
+        { title: "Registered nurses and registered psychiatric nurses", noc: "31301", teer: 1 },
+        { title: "Nurse practitioners", noc: "31302", teer: 1 },
+        { title: "Physician assistants, midwives and allied health professionals", noc: "31303", teer: 1 },
+        { title: "Licensed practical nurses", noc: "32101", teer: 2 },
+        { title: "Paramedical occupations", noc: "32102", teer: 2 },
+        { title: "Respiratory therapists, clinical perfusionists and cardiopulmonary technologists", noc: "32103", teer: 2 },
+        { title: "Animal health technologists and veterinary technicians", noc: "32104", teer: 2 },
+        { title: "Other technical occupations in therapy and assessment", noc: "32109", teer: 2 },
+        { title: "Dental hygienists and dental therapists", noc: "32111", teer: 2 },
+        { title: "Medical laboratory technologists", noc: "32120", teer: 2 },
+        { title: "Medical radiation technologists", noc: "32121", teer: 2 },
+        { title: "Medical sonographers", noc: "32122", teer: 2 },
+        { title: "Cardiology technologists and electrophysiological diagnostic technologists", noc: "32123", teer: 2 },
+        { title: "Pharmacy technicians", noc: "32124", teer: 2 },
+        { title: "Other medical technologists and technicians", noc: "32129", teer: 2 },
+        { title: "Massage therapists", noc: "32201", teer: 2 },
+        { title: "Medical laboratory assistants and related technical occupations", noc: "33101", teer: 3 },
+        { title: "Nurse aides, orderlies and patient service associates", noc: "33102", teer: 3 },
+        { title: "Pharmacy technical assistants and pharmacy assistants", noc: "33103", teer: 3 },
+        { title: "Social workers", noc: "41300", teer: 1 },
+        { title: "Therapists in counselling and related specialized therapies", noc: "41301", teer: 1 },
+        { title: "Social and community service workers", noc: "42201", teer: 2 }
+      ]
+    },
+    {
+      id: "stem",
+      label: "STEM",
+      occupations: [
+        { title: "Architecture and science managers", noc: "20011", teer: 0 },
+        { title: "Cybersecurity specialists", noc: "21220", teer: 1 },
+        { title: "Civil engineers", noc: "21300", teer: 1 },
+        { title: "Mechanical engineers", noc: "21301", teer: 1 },
+        { title: "Electrical and electronics engineers", noc: "21310", teer: 1 },
+        { title: "Industrial and manufacturing engineers", noc: "21321", teer: 1 },
+        { title: "Geological engineers", noc: "21331", teer: 1 },
+        { title: "Civil engineering technologists and technicians", noc: "22300", teer: 2 },
+        { title: "Mechanical engineering technologists and technicians", noc: "22301", teer: 2 },
+        { title: "Electrical and electronics engineering technologists and technicians", noc: "22310", teer: 2 },
+        { title: "Insurance agents and brokers", noc: "63100", teer: 3 }
+      ]
+    },
+    {
+      id: "education",
+      label: "Education",
+      occupations: [
+        { title: "Secondary school teachers", noc: "41220", teer: 1 },
+        { title: "Elementary school and kindergarten teachers", noc: "41221", teer: 1 },
+        { title: "Early childhood educators and assistants", noc: "42202", teer: 2 },
+        { title: "Instructors of persons with disabilities", noc: "42203", teer: 2 },
+        { title: "Elementary and secondary school teacher assistants", noc: "43100", teer: 3 }
+      ]
+    },
+    {
+      id: "transport",
+      label: "Transport",
+      occupations: [
+        { title: "Aircraft mechanics and aircraft inspectors", noc: "72404", teer: 2 },
+        { title: "Air pilots, flight engineers and flying instructors", noc: "72600", teer: 2 },
+        { title: "Aircraft instrument, electrical and avionics mechanics, technicians and inspectors", noc: "22313", teer: 2 },
+        { title: "Automotive service technicians, truck and bus mechanics, and mechanical repairers", noc: "72410", teer: 2 }
+      ]
+    }
+  ],
+  // Non-NOC options handled by the same dropdown
+  otherCategories: [
+    { id: "business", label: "Business Owner / Investor / Start-Up Visa" },
+    { id: "general",  label: "General Skilled Worker" }
+  ]
+};
 
+// ============================================================================
+// CONFIG — set ENDPOINT after deploying the Apps Script web app
+// ============================================================================
+const ENDPOINT = "PASTE_APPS_SCRIPT_WEB_APP_URL_HERE";
+const MAX_FILE_BYTES = 5 * 1024 * 1024; // 5 MB per file
+
+// ============================================================================
+// Elements
+// ============================================================================
 const $ = s => document.querySelector(s);
 const f = $("#f"), msg = $("#msg");
-const BIZ = "Business Owner / Investor / Start-Up Visa";
+const BIZ_ID = "business";
 
-function restore(){ try {
+// ============================================================================
+// Dropdown population
+// ============================================================================
+function buildCategoryDropdown() {
+  const sel = $("#category");
+  sel.innerHTML = '<option value="">Select…</option>';
+  const groups = [
+    { label: "Express Entry categories", items: OCCUPATION_GUIDE.categories.map(c => ({ value: c.id, text: c.label })) },
+    { label: "Other pathways",          items: OCCUPATION_GUIDE.otherCategories.map(c => ({ value: c.id, text: c.label })) }
+  ];
+  groups.forEach(g => {
+    const og = document.createElement("optgroup");
+    og.label = g.label;
+    g.items.forEach(it => {
+      const o = document.createElement("option");
+      o.value = it.value; o.textContent = it.text;
+      og.appendChild(o);
+    });
+    sel.appendChild(og);
+  });
+}
+
+function buildOccupationDropdown(categoryId) {
+  const sel = $("#occupation");
+  const cat = OCCUPATION_GUIDE.categories.find(c => c.id === categoryId);
+  sel.innerHTML = "";
+  if (!cat) { $("#occWrap").hidden = true; return; }
+  const placeholder = document.createElement("option");
+  placeholder.value = ""; placeholder.textContent = "Select…";
+  sel.appendChild(placeholder);
+  cat.occupations.forEach((o, i) => {
+    const opt = document.createElement("option");
+    opt.value = String(i);
+    opt.textContent = o.title + " — NOC " + o.noc + " (TEER " + o.teer + ")";
+    sel.appendChild(opt);
+  });
+  const other = document.createElement("option");
+  other.value = "other"; other.textContent = "Not listed / other";
+  sel.appendChild(other);
+  $("#occWrap").hidden = false;
+  $("#noc").value = ""; $("#teer").value = "";
+}
+
+function syncNocFields() {
+  const catId = $("#category").value;
+  const cat = OCCUPATION_GUIDE.categories.find(c => c.id === catId);
+  const val = $("#occupation").value;
+  if (cat && val && val !== "other") {
+    const occ = cat.occupations[Number(val)];
+    if (occ) { $("#noc").value = occ.noc; $("#teer").value = String(occ.teer); return; }
+  }
+  $("#noc").value = ""; $("#teer").value = "";
+}
+
+// ============================================================================
+// Disclaimer
+// ============================================================================
+$("#disclaimerText").textContent = OCCUPATION_GUIDE.metadata.disclaimer +
+  " Source checked " + OCCUPATION_GUIDE.metadata.source_checked + ".";
+
+// ============================================================================
+// Restore agent + token from localStorage
+// ============================================================================
+function restore() { try {
   $("#submittedBy").value = localStorage.getItem("agent") || "";
   $("#token").value = localStorage.getItem("token") || "";
 } catch(e){} }
 restore();
 
+// ============================================================================
+// Conditional UI
+// ============================================================================
 $("#category").addEventListener("change", e => {
-  const biz = e.target.value === BIZ;
-  $("#bizSection").hidden = !biz;
-  $("#bizDocs").hidden = !biz;
+  const isBiz = e.target.value === BIZ_ID;
+  $("#bizSection").hidden = !isBiz;
+  $("#bizDocs").hidden = !isBiz;
+  buildOccupationDropdown(e.target.value);
+  syncNocFields();
 });
+$("#occupation").addEventListener("change", syncNocFields);
 $("#payStatus").addEventListener("change", e => {
   $("#payFields").hidden = !["Deposit Paid","Paid in Full"].includes(e.target.value);
 });
+$("#ocrChecked").addEventListener("change", e => {
+  // purely informational — enables nothing, but anchors the agent's attention
+});
 
+// ============================================================================
+// File → base64
+// ============================================================================
 function toB64(file){
   return new Promise((res, rej) => {
+    if (file.size > MAX_FILE_BYTES) {
+      rej(new Error(file.name + " is over 5 MB. Compress or resize it first."));
+      return;
+    }
     const r = new FileReader();
     r.onload = () => res({name:file.name, type:file.type, data:String(r.result).split(",")[1]});
     r.onerror = () => rej(new Error("Could not read " + file.name));
@@ -202,42 +394,63 @@ async function post(payload){
 }
 const ready = () => !ENDPOINT.startsWith("PASTE_");
 
-// Passport scan: sends the photo to the backend, which holds the OCR key
+// ============================================================================
+// Passport scan
+// ============================================================================
 $("#scanBtn").onclick = () => $("#scanFile").click();
 $("#scanFile").onchange = async e => {
   const file = e.target.files[0]; if (!file) return;
   const st = $("#scanStatus");
   if (!ready()){ st.textContent = "Scanning is not connected yet. Enter details by hand."; st.className = "files err"; return; }
+  if (file.size > MAX_FILE_BYTES){ st.textContent = "Photo is over 5 MB. Resize and try again."; st.className = "files err"; return; }
   st.textContent = "Reading passport…"; st.className = "files";
   try {
     const out = await post({action:"ocr", file: await toB64(file)});
     if (!out.ok) throw new Error(out.error || "Scan failed");
     const map = {fullName:"fullName", dob:"dob", nationality:"nationality", passportNumber:"passportNumber", passportExpiry:"passportExpiry"};
     for (const k in map) if (out.fields && out.fields[k]) f.elements[map[k]].value = out.fields[k];
-    st.textContent = "Scan complete. Check every field against the passport."; st.className = "files good";
+    st.textContent = "Scan complete. Check every field against the passport.";
+    st.className = "files good";
+    $("#ocrCheckWrap").hidden = false;
+    $("#ocrChecked").checked = false;
   } catch(err){ st.textContent = err.message + ". Enter details by hand."; st.className = "files err"; }
 };
 
+// ============================================================================
+// Submit
+// ============================================================================
 $("#submitBtn").onclick = async () => {
   const btn = $("#submitBtn");
-  // validate
-  const biz = f.elements.category.value === BIZ;
+  const isBiz = f.elements.category.value === BIZ_ID;
+  const hasOcc = !$("#occWrap").hidden;
   const paid = ["Deposit Paid","Paid in Full"].includes(f.elements.payStatus.value);
+
   const missing = [...f.querySelectorAll("[required]")].filter(el => !el.value.trim());
+  if (hasOcc && !f.elements.occupation.value) missing.push(f.elements.occupation);
   if (paid) ["amount","payMethod"].forEach(n => { if (!f.elements[n].value) missing.push(f.elements[n]); });
-  if (biz) ["netWorth","investCapital"].forEach(n => { if (!f.elements[n].value) missing.push(f.elements[n]); });
+  if (isBiz) ["netWorth","investCapital"].forEach(n => { if (!f.elements[n].value) missing.push(f.elements[n]); });
+
   for (const inp of f.querySelectorAll("input[type=file]")){
-    if (inp.files.length > Number(inp.dataset.max)){ inp.focus(); say("Too many files in “" + inp.closest("label").firstChild.textContent.trim() + "”. Limit is " + inp.dataset.max + ".", "err"); return; }
+    if (inp.files.length > Number(inp.dataset.max)){
+      inp.focus();
+      say("Too many files in “" + inp.closest("label").firstChild.textContent.trim() + "”. Limit is " + inp.dataset.max + ".", "err");
+      return;
+    }
   }
   if (missing.length){ missing[0].focus(); say("Fill in all required fields (" + missing.length + " missing).", "err"); return; }
   if (paid && !f.elements.receipt.files.length){ f.elements.receipt.focus(); say("Attach the payment receipt.", "err"); return; }
+  if (!$("#ocrCheckWrap").hidden && !$("#ocrChecked").checked){
+    $("#ocrChecked").focus();
+    say("Tick the box confirming you checked the passport fields.", "err");
+    return;
+  }
   if (!ready()){ say("Backend not connected yet. Form is valid.", "good"); return; }
 
   btn.disabled = true; say("Uploading. Keep this page open…");
   try {
     const fields = {};
     for (const el of f.elements){
-      if (el.name && el.type !== "file" && !(el.closest("[hidden]"))) fields[el.name] = el.value.trim();
+      if (el.name && el.type !== "file" && !el.closest("[hidden]")) fields[el.name] = el.value.trim();
     }
     fields.submittedAt = new Date().toISOString();
     const files = {};
@@ -249,13 +462,16 @@ $("#submitBtn").onclick = async () => {
     const out = await post({action:"submit", fields, files});
     if (!out.ok) throw new Error(out.error || "Submission failed");
     say("Submitted. Reference " + (out.ref || "") + ".", "good");
-    f.reset(); $("#bizSection").hidden = $("#bizDocs").hidden = $("#payFields").hidden = true;
+    f.reset();
+    $("#bizSection").hidden = $("#bizDocs").hidden = $("#payFields").hidden = $("#occWrap").hidden = $("#ocrCheckWrap").hidden = true;
     restore();
     window.scrollTo(0,0);
   } catch(err){
     say(err.message + ". Nothing was lost on this screen; try again.", "err");
   } finally { btn.disabled = false; }
 };
-</script>
-</body>
-</html>
+
+// ============================================================================
+// Init
+// ============================================================================
+buildCategoryDropdown();
