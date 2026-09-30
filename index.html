@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Candidate Intake</title>
+<style>
+:root{--bg:#f3f5f4;--card:#fff;--ink:#14231f;--muted:#5b6b66;--line:#d3dbd8;--brand:#0f4c43;--brand-ink:#fff;--accent:#b3261e;--ok:#1b6e3a;
+  padding-top:env(safe-area-inset-top,0px);box-sizing:border-box}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1614;--card:#16211e;--ink:#e6eeeb;--muted:#93a6a0;--line:#2b3b37;--brand:#6fc2b2;--brand-ink:#08211c;--accent:#ff8a80;--ok:#7fd6a0}}
+:root[data-theme="dark"]{--bg:#0e1614;--card:#16211e;--ink:#e6eeeb;--muted:#93a6a0;--line:#2b3b37;--brand:#6fc2b2;--brand-ink:#08211c;--accent:#ff8a80;--ok:#7fd6a0}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
+header{padding:20px 16px 8px;max-width:640px;margin:0 auto}
+h1{font-size:1.4rem;margin:0 0 4px}
+header p{margin:0;color:var(--muted);font-size:.9rem}
+form{max-width:640px;margin:0 auto;padding:0 12px}
+fieldset{border:1px solid var(--line);background:var(--card);border-radius:6px;margin:14px 0;padding:14px 14px 4px;min-width:0}
+legend{font-weight:700;padding:0 6px;font-size:1.02rem}
+label{display:block;font-size:.88rem;font-weight:600;margin:0 0 12px}
+label span.hint{font-weight:400;color:var(--muted)}
+input,select,textarea{display:block;width:100%;margin-top:4px;padding:11px 10px;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:4px}
+input:focus,select:focus,textarea:focus,button:focus-visible{outline:3px solid var(--brand);outline-offset:1px}
+input[type=file]{padding:9px;background:transparent}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.row.wide-first{grid-template-columns:2fr 1fr}
+.scan{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+button{font:inherit;font-weight:600;border-radius:4px;padding:11px 16px;border:1px solid var(--brand);background:transparent;color:var(--brand);cursor:pointer}
+button.primary{background:var(--brand);color:var(--brand-ink)}
+button:disabled{opacity:.55}
+.note{font-size:.82rem;color:var(--muted);margin:-6px 0 12px}
+.files{font-size:.8rem;color:var(--muted);margin-top:4px}
+.bar{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px))}
+.bar>div{max-width:640px;margin:0 auto;display:flex;gap:10px;align-items:center}
+.bar button{flex:1}
+#msg{font-size:.85rem;flex:2}
+.err{color:var(--accent)}.good{color:var(--ok)}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<header>
+  <h1>Candidate intake</h1>
+  <p>Record facts only. Do not promise eligibility or give immigration advice.</p>
+</header>
+
+<form id="f" novalidate>
+
+<fieldset>
+  <legend>1. Candidate profile</legend>
+  <div class="scan">
+    <button type="button" id="scanBtn">Scan passport</button>
+    <input type="file" id="scanFile" accept="image/*" capture="environment" hidden>
+    <span class="files" id="scanStatus">Fills the fields below. Check them before you continue.</span>
+  </div>
+  <label>Full name<input name="fullName" autocomplete="off" required></label>
+  <div class="row">
+    <label>Date of birth<input type="date" name="dob" required></label>
+    <label>Nationality<input name="nationality" required></label>
+  </div>
+  <div class="row">
+    <label>Passport number<input name="passportNumber" autocapitalize="characters" required></label>
+    <label>Passport expiry<input type="date" name="passportExpiry" required></label>
+  </div>
+  <label>Phone / WhatsApp<input type="tel" name="phone" inputmode="tel" required></label>
+  <label>Your name or email (agent)<input name="submittedBy" id="submittedBy" required></label>
+</fieldset>
+
+<fieldset>
+  <legend>2. Qualifications and pathway</legend>
+  <label>Target category
+    <select name="category" id="category" required>
+      <option value="">Select…</option>
+      <option>Business Owner / Investor / Start-Up Visa</option>
+      <option>Healthcare &amp; Social Services</option>
+      <option>STEM</option>
+      <option>Education</option>
+      <option>Trades</option>
+      <option>Transport</option>
+      <option>General Skilled Worker</option>
+    </select>
+  </label>
+  <label>Actual job title / current business role<input name="jobTitle" required></label>
+  <label>Highest education level
+    <select name="education" required>
+      <option value="">Select…</option><option>High school</option><option>Diploma / certificate</option><option>Bachelor's degree</option><option>Master's degree</option><option>Doctorate</option>
+    </select>
+  </label>
+  <label>Years of management or skilled experience
+    <select name="experience" required>
+      <option value="">Select…</option><option>Under 1</option><option>1–2</option><option>3–5</option><option>6–10</option><option>Over 10</option>
+    </select>
+  </label>
+  <div class="row">
+    <label>English
+      <select name="english" required><option value="">Select…</option><option>None</option><option>Basic</option><option>Intermediate</option><option>Advanced</option></select>
+    </label>
+    <label>French
+      <select name="french" required><option value="">Select…</option><option>None</option><option>Basic</option><option>Intermediate</option><option>Advanced</option></select>
+    </label>
+  </div>
+</fieldset>
+
+<fieldset id="bizSection" hidden>
+  <legend>3. Business owner and investor details</legend>
+  <label>Estimated personal net worth (CAD)
+    <select name="netWorth"><option value="">Select…</option><option>Under $100k</option><option>$100k–$300k</option><option>$300k–$500k</option><option>$500k+</option></select>
+  </label>
+  <label>Available investment capital for Canada (CAD)
+    <select name="investCapital"><option value="">Select…</option><option>Under $100k</option><option>$100k–$200k</option><option>$200k+</option></select>
+  </label>
+  <label>Percentage owned in existing business<input type="number" name="ownershipPct" min="0" max="100" inputmode="numeric"></label>
+  <label>Proposed business in Canada <span class="hint">(short summary)</span><textarea name="businessPlan" rows="4"></textarea></label>
+</fieldset>
+
+<fieldset>
+  <legend>4. Payment</legend>
+  <label>Payment status
+    <select name="payStatus" id="payStatus" required><option value="">Select…</option><option>Unpaid</option><option>Deposit Paid</option><option>Paid in Full</option></select>
+  </label>
+  <div id="payFields" hidden>
+    <div class="row wide-first">
+      <label>Amount paid<input type="number" name="amount" min="0" step="0.01" inputmode="decimal"></label>
+      <label>Currency
+        <select name="currency"><option>USD</option><option>CAD</option><option>EUR</option><option>GBP</option><option>SLE</option><option>NGN</option><option>GHS</option></select>
+      </label>
+    </div>
+    <label>Payment method
+      <select name="payMethod"><option value="">Select…</option><option>Bank Transfer</option><option>Cash</option><option>Mobile Money</option></select>
+    </label>
+    <label>Payment receipt <span class="hint">(photo or PDF)</span>
+      <input type="file" name="receipt" data-max="1" accept="image/*,application/pdf">
+    </label>
+    <p class="note">Date and time are recorded automatically when you submit.</p>
+  </div>
+</fieldset>
+
+<fieldset>
+  <legend>5. Supporting documents</legend>
+  <label>Resume / CV / executive profile <span class="hint">(1 file)</span>
+    <input type="file" name="cv" data-max="1" accept="image/*,application/pdf,.doc,.docx"></label>
+  <label>Passport bio-data page <span class="hint">(1 file)</span>
+    <input type="file" name="passportDoc" data-max="1" accept="image/*,application/pdf"></label>
+  <label>Bank statements and net worth proof <span class="hint">(up to 5)</span>
+    <input type="file" name="bank" data-max="5" multiple accept="image/*,application/pdf"></label>
+  <label id="bizDocs" hidden>Business registration / pitch deck <span class="hint">(up to 5)</span>
+    <input type="file" name="bizDocs" data-max="5" multiple accept="image/*,application/pdf,.ppt,.pptx"></label>
+  <label>Degrees and work experience letters <span class="hint">(up to 10)</span>
+    <input type="file" name="edu" data-max="10" multiple accept="image/*,application/pdf"></label>
+</fieldset>
+
+</form>
+
+<div class="bar"><div>
+  <div id="msg" role="status" aria-live="polite"></div>
+  <button class="primary" id="submitBtn" type="button">Submit intake</button>
+</div></div>
+
+<script>
+// ---- Set this after deploying the Apps Script web app (backend step) ----
+const ENDPOINT = "PASTE_APPS_SCRIPT_WEB_APP_URL_HERE";
+
+const $ = s => document.querySelector(s);
+const f = $("#f"), msg = $("#msg");
+const BIZ = "Business Owner / Investor / Start-Up Visa";
+
+try { const v = localStorage.getItem("agent"); if (v) $("#submittedBy").value = v; } catch(e){}
+
+$("#category").addEventListener("change", e => {
+  const biz = e.target.value === BIZ;
+  $("#bizSection").hidden = !biz;
+  $("#bizDocs").hidden = !biz;
+});
+$("#payStatus").addEventListener("change", e => {
+  $("#payFields").hidden = !["Deposit Paid","Paid in Full"].includes(e.target.value);
+});
+
+function toB64(file){
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res({name:file.name, type:file.type, data:String(r.result).split(",")[1]});
+    r.onerror = () => rej(new Error("Could not read " + file.name));
+    r.readAsDataURL(file);
+  });
+}
+function say(t, cls){ msg.textContent = t; msg.className = cls || ""; }
+async function post(payload){
+  const r = await fetch(ENDPOINT, {method:"POST", headers:{"Content-Type":"text/plain;charset=utf-8"}, body:JSON.stringify(payload)});
+  return r.json();
+}
+const ready = () => !ENDPOINT.startsWith("PASTE_");
+
+// Passport scan: sends the photo to the backend, which holds the OCR key
+$("#scanBtn").onclick = () => $("#scanFile").click();
+$("#scanFile").onchange = async e => {
+  const file = e.target.files[0]; if (!file) return;
+  const st = $("#scanStatus");
+  if (!ready()){ st.textContent = "Scanning is not connected yet. Enter details by hand."; st.className = "files err"; return; }
+  st.textContent = "Reading passport…"; st.className = "files";
+  try {
+    const out = await post({action:"ocr", file: await toB64(file)});
+    if (!out.ok) throw new Error(out.error || "Scan failed");
+    const map = {fullName:"fullName", dob:"dob", nationality:"nationality", passportNumber:"passportNumber", passportExpiry:"passportExpiry"};
+    for (const k in map) if (out.fields && out.fields[k]) f.elements[map[k]].value = out.fields[k];
+    st.textContent = "Scan complete. Check every field against the passport."; st.className = "files good";
+  } catch(err){ st.textContent = err.message + ". Enter details by hand."; st.className = "files err"; }
+};
+
+$("#submitBtn").onclick = async () => {
+  const btn = $("#submitBtn");
+  // validate
+  const biz = f.elements.category.value === BIZ;
+  const paid = ["Deposit Paid","Paid in Full"].includes(f.elements.payStatus.value);
+  const missing = [...f.querySelectorAll("[required]")].filter(el => !el.value.trim());
+  if (paid) ["amount","payMethod"].forEach(n => { if (!f.elements[n].value) missing.push(f.elements[n]); });
+  if (biz) ["netWorth","investCapital"].forEach(n => { if (!f.elements[n].value) missing.push(f.elements[n]); });
+  for (const inp of f.querySelectorAll("input[type=file]")){
+    if (inp.files.length > Number(inp.dataset.max)){ inp.focus(); say("Too many files in “" + inp.closest("label").firstChild.textContent.trim() + "”. Limit is " + inp.dataset.max + ".", "err"); return; }
+  }
+  if (missing.length){ missing[0].focus(); say("Fill in all required fields (" + missing.length + " missing).", "err"); return; }
+  if (paid && !f.elements.receipt.files.length){ f.elements.receipt.focus(); say("Attach the payment receipt.", "err"); return; }
+  if (!ready()){ say("Backend not connected yet. Form is valid.", "good"); return; }
+
+  btn.disabled = true; say("Uploading. Keep this page open…");
+  try {
+    const fields = {};
+    for (const el of f.elements){
+      if (el.name && el.type !== "file" && !(el.closest("[hidden]"))) fields[el.name] = el.value.trim();
+    }
+    fields.submittedAt = new Date().toISOString();
+    const files = {};
+    for (const inp of f.querySelectorAll("input[type=file]")){
+      if (inp.closest("[hidden]") || !inp.files.length) continue;
+      files[inp.name] = await Promise.all([...inp.files].map(toB64));
+    }
+    try { localStorage.setItem("agent", fields.submittedBy); } catch(e){}
+    const out = await post({action:"submit", fields, files});
+    if (!out.ok) throw new Error(out.error || "Submission failed");
+    say("Submitted. Reference " + (out.ref || "") + ".", "good");
+    f.reset(); $("#bizSection").hidden = $("#bizDocs").hidden = $("#payFields").hidden = true;
+    try { $("#submittedBy").value = localStorage.getItem("agent") || ""; } catch(e){}
+    window.scrollTo(0,0);
+  } catch(err){
+    say(err.message + ". Nothing was lost on this screen; try again.", "err");
+  } finally { btn.disabled = false; }
+};
+</script>
+</body>
+</html>
