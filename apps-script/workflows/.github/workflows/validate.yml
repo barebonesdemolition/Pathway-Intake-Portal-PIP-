@@ -1,0 +1,51 @@
+name: Validate
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  occupations-drift:
+    name: occupations.json ↔ index.html drift check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Compare data/occupations.json with OCCUPATION_GUIDE in index.html
+        run: node scripts/check-occupations-drift.mjs
+
+  json-schema:
+    name: occupations.json shape check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Validate occupations.json shape
+        run: node scripts/check-occupations-shape.mjs
+
+  gs-syntax:
+    name: Code.gs parses
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Syntax-check apps-script/Code.gs
+        run: |
+          node --check <(sed 's/^var /var /' apps-script/Code.gs) 2>/dev/null \
+            || node -e "new Function(require('fs').readFileSync('apps-script/Code.gs','utf8'))"
