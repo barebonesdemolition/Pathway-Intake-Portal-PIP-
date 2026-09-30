@@ -48,6 +48,11 @@ button:disabled{opacity:.55}
 <form id="f" novalidate>
 
 <fieldset>
+  <legend>Access</legend>
+  <label>Access code <span class="hint">(from your office)</span><input type="password" id="token" autocomplete="off" required></label>
+</fieldset>
+
+<fieldset>
   <legend>1. Candidate profile</legend>
   <div class="scan">
     <button type="button" id="scanBtn">Scan passport</button>
@@ -165,7 +170,11 @@ const $ = s => document.querySelector(s);
 const f = $("#f"), msg = $("#msg");
 const BIZ = "Business Owner / Investor / Start-Up Visa";
 
-try { const v = localStorage.getItem("agent"); if (v) $("#submittedBy").value = v; } catch(e){}
+function restore(){ try {
+  $("#submittedBy").value = localStorage.getItem("agent") || "";
+  $("#token").value = localStorage.getItem("token") || "";
+} catch(e){} }
+restore();
 
 $("#category").addEventListener("change", e => {
   const biz = e.target.value === BIZ;
@@ -186,6 +195,8 @@ function toB64(file){
 }
 function say(t, cls){ msg.textContent = t; msg.className = cls || ""; }
 async function post(payload){
+  payload.token = $("#token").value.trim();
+  try { localStorage.setItem("token", payload.token); } catch(e){}
   const r = await fetch(ENDPOINT, {method:"POST", headers:{"Content-Type":"text/plain;charset=utf-8"}, body:JSON.stringify(payload)});
   return r.json();
 }
@@ -239,7 +250,7 @@ $("#submitBtn").onclick = async () => {
     if (!out.ok) throw new Error(out.error || "Submission failed");
     say("Submitted. Reference " + (out.ref || "") + ".", "good");
     f.reset(); $("#bizSection").hidden = $("#bizDocs").hidden = $("#payFields").hidden = true;
-    try { $("#submittedBy").value = localStorage.getItem("agent") || ""; } catch(e){}
+    restore();
     window.scrollTo(0,0);
   } catch(err){
     say(err.message + ". Nothing was lost on this screen; try again.", "err");
